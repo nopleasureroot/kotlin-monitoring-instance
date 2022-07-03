@@ -1,4 +1,4 @@
-package com.monitoring.microservices.service.kotlin.instance.configuration
+package com.monitoring.microservices.service.kotlin.instance.actuator
 
 import com.monitoring.microservices.service.kotlin.instance.model.StatusHolder
 import org.springframework.boot.actuate.health.Health

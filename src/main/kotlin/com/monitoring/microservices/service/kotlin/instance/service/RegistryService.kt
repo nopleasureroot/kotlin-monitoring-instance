@@ -1,5 +1,6 @@
 package com.monitoring.microservices.service.kotlin.instance.service
 
+import com.monitoring.microservices.service.kotlin.instance.configuration.InstanceStateConfiguration
 import com.monitoring.microservices.service.kotlin.instance.model.request.RegistryBody
 import com.monitoring.microservices.service.kotlin.instance.util.HttpFabric
 import com.monitoring.microservices.service.kotlin.instance.util.Constants
@@ -13,6 +14,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpResponse
 import java.net.http.HttpTimeoutException
 import javax.annotation.PostConstruct
+import kotlin.system.exitProcess
 
 @Slf4j
 @Service
@@ -30,22 +32,27 @@ class RegistryService(
         val response: HttpResponse<String>? = registerInstance(RegistryBody(port, contextPath))
 
         if (response?.statusCode() == 202) {
+            val jsonResponse = JSONObject(response.body())
+            InstanceStateConfiguration.instanceUUID = jsonResponse.getString("instanceHash")
+
             logger.info("REGISTRATION INFO: \nRegistration finished, instance registered with \nID:" +
-                " ${JSONObject(response.body()).getString("instanceHash")}, " +
+                " ${jsonResponse.getString("instanceHash")}, " +
                 "\nPORT: $port, \nCONTEXT-PATH: $contextPath"
             )
         } else {
-            logger.error("Registration failed with status code: " +
+            logger.error("Registration failed with status code  : " +
                 "${response?.statusCode() ?: "Undefined-Code"}" +
                 " and message: ${response?.body() ?: "Undefined-Body"}"
             )
+
+            exitProcess(0)
         }
     }
 
     private fun registerInstance(registryBody: RegistryBody): HttpResponse<String>? {
         return try {
             httpClient.send(
-                HttpFabric.createPostRequest(Constants.REGISTRY_URL, JSONObject(registryBody).toString()),
+                HttpFabric.createPostRequest(Constants.REGISTRY_URL + "/registration/new", JSONObject(registryBody).toString()),
                 HttpResponse.BodyHandlers.ofString()
             )
         } catch (exc: ConnectException) {
